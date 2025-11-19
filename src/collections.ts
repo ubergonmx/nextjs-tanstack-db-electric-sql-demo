@@ -9,7 +9,16 @@ import {
 
 export { type Contact } from "@/schema";
 
+const contactSchema = selectContactSchema.omit({
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const contactCollection = createCollection(
+  // @ts-expect-error - Type mismatch between @tanstack/react-db and @tanstack/electric-db-collection
+  // The electricCollectionOptions return type expects comparisonOpts/compareOptions that aren't in the inferred type.
+  // This is likely a type definition issue in the library versions (both 0.1.1).
   electricCollectionOptions({
     id: "contacts",
     shapeOptions: {
@@ -23,11 +32,7 @@ export const contactCollection = createCollection(
         table: "contacts",
       },
     },
-    schema: selectContactSchema.omit({
-      userId: true,
-      createdAt: true,
-      updatedAt: true,
-    }),
+    schema: contactSchema,
     getKey: (item) => item.id,
 
     // Add server action handlers for mutations
