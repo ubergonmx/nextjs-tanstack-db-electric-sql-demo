@@ -39,6 +39,7 @@ import { UpdateContactForm } from "./update-contact-form";
 import { CreateContactForm } from "./create-contact-form";
 import { toast } from "sonner";
 import { signOut } from "@/lib/auth-client";
+import { useContactSound } from "@/hooks/use-contact-sound";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +57,9 @@ export function ContactsList() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Play sound when new contacts are detected
+  useContactSound();
 
   const handleSignOut = async () => {
     await signOut();
