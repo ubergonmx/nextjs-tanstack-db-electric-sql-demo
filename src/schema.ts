@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createSchemaFactory } from "drizzle-zod";
 import { z } from "zod";
 import { user } from "./lib/auth-schema";
@@ -18,6 +18,17 @@ export const contactsTable = pgTable("contacts", {
   company: text("company"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Push notification subscriptions table
+export const pushSubscriptionsTable = pgTable("push_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  keys: jsonb("keys").notNull(), // { p256dh: string, auth: string }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const selectContactSchema = createSelectSchema(contactsTable);

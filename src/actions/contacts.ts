@@ -6,6 +6,7 @@ import { contactsTable } from "@/schema";
 import { and, eq } from "drizzle-orm";
 import type { CreateContact, UpdateContact } from "@/schema";
 import { headers } from "next/headers";
+import { sendPushNotificationToUser } from "./push";
 
 async function getUser() {
   const session = await auth.api.getSession({
@@ -35,6 +36,18 @@ export async function createContactAction(data: CreateContact) {
       .insert(contactsTable)
       .values(newContact)
       .returning();
+
+    // Send push notification to the user's other devices
+    // This runs asynchronously and doesn't block the response
+    sendPushNotificationToUser(user.id, {
+      title: "New Contact Added",
+      body: `${insertedContact.name} was added to your contacts`,
+      icon: "/icons/icon-192x192.svg",
+      url: "/",
+      tag: `contact-${insertedContact.id}`,
+    }).catch((err) => {
+      console.error("Failed to send push notification:", err);
+    });
 
     return {
       success: true,

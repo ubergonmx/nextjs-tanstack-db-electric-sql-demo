@@ -40,6 +40,7 @@ import { CreateContactForm } from "./create-contact-form";
 import { toast } from "sonner";
 import { signOut } from "@/lib/auth-client";
 import { useContactSound } from "@/hooks/use-contact-sound";
+import { PushNotificationManager } from "./push-notification-manager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -162,6 +163,7 @@ export function ContactsList() {
             <Plus className="h-4 w-4" />
             Add Contact
           </Button>
+          <PushNotificationManager />
           <Button
             variant="outline"
             onClick={handleSignOut}
