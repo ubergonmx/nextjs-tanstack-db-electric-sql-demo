@@ -14,12 +14,17 @@ export const auth = betterAuth({
     enabled: true,
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // 1 day
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60, // 5 minutes
     },
+  },
+  advanced: {
+    cookiePrefix: "contacts-app",
+    // These settings help with iOS PWA cookie persistence
+    useSecureCookies: process.env.NODE_ENV === "production",
   },
   trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
 });
