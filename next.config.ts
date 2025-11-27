@@ -96,6 +96,11 @@ const withPWA = withPWAInit({
       {
         urlPattern: ({ url }: { url: URL }) => {
           const isSameOrigin = self.origin === url.origin;
+          // Exclude live/streaming connections (ElectricSQL long-polling) from SW interception
+          // These should go directly to the server without being cached or proxied
+          if (url.searchParams.get("live") === "true") {
+            return false;
+          }
           return isSameOrigin && url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/auth/");
         },
         handler: "NetworkFirst",
