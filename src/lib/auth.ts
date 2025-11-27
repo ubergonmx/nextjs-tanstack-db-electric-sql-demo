@@ -23,8 +23,8 @@ export const auth = betterAuth({
   },
   advanced: {
     cookiePrefix: "contacts-app",
-    // These settings help with iOS PWA cookie persistence
-    useSecureCookies: process.env.NODE_ENV === "production",
+    // Only use secure cookies on HTTPS (production deployment)
+    useSecureCookies: process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://") ?? false,
     // iOS PWAs in standalone mode don't send origin headers properly
     disableCSRFCheck: true,
   },
