@@ -45,7 +45,7 @@ export const contactCollection = createCollection(
           throw new Error(result.error || "Failed to create contact");
         }
 
-        results.push(Date.now()); // Use timestamp as txid
+        results.push(result.txid);
       }
 
       return { txid: results };
@@ -65,7 +65,7 @@ export const contactCollection = createCollection(
           throw new Error(result.error || "Failed to update contact");
         }
 
-        results.push(Date.now()); // Use timestamp as txid
+        results.push(result.txid);
       }
 
       return { txid: results };
@@ -83,7 +83,7 @@ export const contactCollection = createCollection(
           throw new Error(result.error || "Failed to delete contact");
         }
 
-        results.push(Date.now()); // Use timestamp as txid
+        results.push(result.txid);
       }
 
       return { txid: results };

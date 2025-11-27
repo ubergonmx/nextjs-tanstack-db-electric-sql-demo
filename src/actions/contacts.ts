@@ -1,9 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { contactsTable } from "@/schema";
-import { and, eq } from "drizzle-orm";
+import { sql } from "@/db";
 import type { CreateContact, UpdateContact } from "@/schema";
 import { headers } from "next/headers";
 import { sendPushNotificationToUser } from "./push";
@@ -24,18 +22,18 @@ export async function createContactAction(data: CreateContact) {
   try {
     const user = await getUser();
 
-    const now = new Date();
-    const newContact = {
-      ...data,
-      userId: user.id,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const now = new Date().toISOString();
 
-    const [insertedContact] = await db
-      .insert(contactsTable)
-      .values(newContact)
-      .returning();
+    // Use transaction to insert and get txid atomically
+    const [insertResult, txidResult] = await sql.transaction([
+      sql`INSERT INTO contacts (id, name, email, tel, title, company, user_id, created_at, updated_at)
+          VALUES (${data.id}, ${data.name}, ${data.email ?? null}, ${data.tel ?? null}, ${data.title ?? null}, ${data.company ?? null}, ${user.id}, ${now}, ${now})
+          RETURNING *`,
+      sql`SELECT pg_current_xact_id()::text as txid`,
+    ]);
+
+    const insertedContact = insertResult[0];
+    const txid = txidResult[0].txid;
 
     // Send push notification to the user's other devices
     // This runs asynchronously and doesn't block the response
@@ -52,6 +50,7 @@ export async function createContactAction(data: CreateContact) {
     return {
       success: true,
       contact: insertedContact,
+      txid,
     };
   } catch (error) {
     console.error("Error creating contact:", error);
@@ -67,17 +66,24 @@ export async function updateContactAction(id: string, data: UpdateContact) {
   try {
     const user = await getUser();
 
-    const updateData = {
-      ...data,
-      userId: user.id,
-      updatedAt: new Date(),
-    };
+    const now = new Date().toISOString();
 
-    const [updatedContact] = await db
-      .update(contactsTable)
-      .set(updateData)
-      .where(and(eq(contactsTable.id, id), eq(contactsTable.userId, user.id)))
-      .returning();
+    // Use transaction to update and get txid atomically
+    const [updateResult, txidResult] = await sql.transaction([
+      sql`UPDATE contacts
+          SET name = ${data.name},
+              email = ${data.email ?? null},
+              tel = ${data.tel ?? null},
+              title = ${data.title ?? null},
+              company = ${data.company ?? null},
+              updated_at = ${now}
+          WHERE id = ${id} AND user_id = ${user.id}
+          RETURNING *`,
+      sql`SELECT pg_current_xact_id()::text as txid`,
+    ]);
+
+    const updatedContact = updateResult[0];
+    const txid = txidResult[0].txid;
 
     if (!updatedContact) {
       return {
@@ -86,17 +92,10 @@ export async function updateContactAction(id: string, data: UpdateContact) {
       };
     }
 
-    // Verify the contact belongs to the user
-    if (updatedContact.userId !== user.id) {
-      return {
-        success: false,
-        error: "Not authorized to update this contact",
-      };
-    }
-
     return {
       success: true,
       contact: updatedContact,
+      txid,
     };
   } catch (error) {
     console.error("Error updating contact:", error);
@@ -112,32 +111,28 @@ export async function deleteContactAction(id: string) {
   try {
     const user = await getUser();
 
-    // First check if the contact exists and belongs to the user
-    const [existingContact] = await db
-      .select()
-      .from(contactsTable)
-      .where(and(eq(contactsTable.id, id), eq(contactsTable.userId, user.id)))
-      .limit(1);
+    // Use transaction to delete and get txid atomically
+    const [deleteResult, txidResult] = await sql.transaction([
+      sql`DELETE FROM contacts
+          WHERE id = ${id} AND user_id = ${user.id}
+          RETURNING id`,
+      sql`SELECT pg_current_xact_id()::text as txid`,
+    ]);
 
-    if (!existingContact) {
+    const deletedContact = deleteResult[0];
+    const txid = txidResult[0].txid;
+
+    if (!deletedContact) {
       return {
         success: false,
         error: "Contact not found",
       };
     }
 
-    if (existingContact.userId !== user.id) {
-      return {
-        success: false,
-        error: "Not authorized to delete this contact",
-      };
-    }
-
-    await db.delete(contactsTable).where(eq(contactsTable.id, id));
-
     return {
       success: true,
       contactId: id,
+      txid,
     };
   } catch (error) {
     console.error("Error deleting contact:", error);
