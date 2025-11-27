@@ -69,8 +69,17 @@ export function PushNotificationManager() {
 
       const registration = await navigator.serviceWorker.ready;
 
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      // Access VAPID key - must be prefixed with NEXT_PUBLIC_ to be available on client
+      const vapidPublicKey =
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+        // Fallback: check if it was injected differently
+        (typeof window !== "undefined" &&
+          (window as unknown as Record<string, string>).__VAPID_PUBLIC_KEY__);
+
       if (!vapidPublicKey) {
+        console.error(
+          "VAPID public key not found. Make sure NEXT_PUBLIC_VAPID_PUBLIC_KEY is set in .env"
+        );
         toast.error("Push notifications not configured");
         return;
       }
@@ -137,34 +146,34 @@ export function PushNotificationManager() {
 
   if (!isSupported) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Button variant="outline" size="sm" disabled title="Push notifications not supported">
         <BellOff className="h-4 w-4" />
-        <span>Push notifications not supported</span>
-      </div>
+        <span className="hidden sm:inline ml-2">Not supported</span>
+      </Button>
     );
   }
 
   if (isLoading) {
     return (
       <Button variant="outline" size="sm" disabled>
-        <Bell className="h-4 w-4 mr-2 animate-pulse" />
-        Loading...
+        <Bell className="h-4 w-4 animate-pulse" />
+        <span className="hidden sm:inline ml-2">Loading...</span>
       </Button>
     );
   }
 
   if (permissionState === "denied") {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Button variant="outline" size="sm" disabled title="Notifications blocked">
         <BellOff className="h-4 w-4" />
-        <span>Notifications blocked</span>
-      </div>
+        <span className="hidden sm:inline ml-2">Blocked</span>
+      </Button>
     );
   }
 
   if (subscription) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -173,18 +182,28 @@ export function PushNotificationManager() {
         >
           <BellRing className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={unsubscribeFromPush}>
-          <Bell className="h-4 w-4 mr-2" />
-          Disable Notifications
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={unsubscribeFromPush}
+          title="Disable notifications"
+        >
+          <BellOff className="h-4 w-4" />
+          <span className="hidden sm:inline ml-2">Disable</span>
         </Button>
       </div>
     );
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={subscribeToPush}>
-      <Bell className="h-4 w-4 mr-2" />
-      Enable Notifications
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={subscribeToPush}
+      title="Enable notifications"
+    >
+      <Bell className="h-4 w-4" />
+      <span className="hidden sm:inline ml-2">Notifications</span>
     </Button>
   );
 }
