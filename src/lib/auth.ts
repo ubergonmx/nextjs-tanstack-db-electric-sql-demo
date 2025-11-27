@@ -25,11 +25,11 @@ export const auth = betterAuth({
     cookiePrefix: "contacts-app",
     // These settings help with iOS PWA cookie persistence
     useSecureCookies: process.env.NODE_ENV === "production",
+    // iOS PWAs in standalone mode don't send origin headers properly
+    disableCSRFCheck: true,
   },
   trustedOrigins: [
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    // iOS PWAs can send requests with null origin
-    "null",
   ],
 });
 
