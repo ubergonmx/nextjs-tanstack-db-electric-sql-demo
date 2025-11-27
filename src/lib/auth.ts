@@ -26,7 +26,11 @@ export const auth = betterAuth({
     // These settings help with iOS PWA cookie persistence
     useSecureCookies: process.env.NODE_ENV === "production",
   },
-  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
+  trustedOrigins: [
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    // iOS PWAs can send requests with null origin
+    "null",
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;
