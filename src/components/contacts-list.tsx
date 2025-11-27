@@ -146,32 +146,34 @@ export function ContactsList() {
           <User className="h-5 w-5" />
           Your Contacts ({contacts.length})
         </CardTitle>
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search contacts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Contact
-          </Button>
-          <PushNotificationManager />
-          <Button
-            variant="outline"
-            onClick={handleSignOut}
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
+          <div className="grid grid-cols-3 sm:flex sm:flex-row gap-2 sm:gap-4">
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              className="flex items-center justify-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Contact</span>
+            </Button>
+            <PushNotificationManager />
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="flex items-center justify-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

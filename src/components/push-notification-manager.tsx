@@ -45,9 +45,20 @@ export function PushNotificationManager() {
 
   async function checkExistingSubscription() {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const existingSub = await registration.pushManager.getSubscription();
-      setSubscription(existingSub);
+      // Add timeout to prevent hanging if service worker isn't ready
+      const timeoutPromise = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error("Service worker timeout")), 3000)
+      );
+
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        timeoutPromise,
+      ]);
+
+      if (registration) {
+        const existingSub = await registration.pushManager.getSubscription();
+        setSubscription(existingSub);
+      }
     } catch (error) {
       console.error("Error checking subscription:", error);
     } finally {
@@ -146,7 +157,7 @@ export function PushNotificationManager() {
 
   if (!isSupported) {
     return (
-      <Button variant="outline" size="sm" disabled title="Push notifications not supported">
+      <Button variant="outline" disabled title="Push notifications not supported">
         <BellOff className="h-4 w-4" />
         <span className="hidden sm:inline ml-2">Not supported</span>
       </Button>
@@ -155,7 +166,7 @@ export function PushNotificationManager() {
 
   if (isLoading) {
     return (
-      <Button variant="outline" size="sm" disabled>
+      <Button variant="outline" disabled>
         <Bell className="h-4 w-4 animate-pulse" />
         <span className="hidden sm:inline ml-2">Loading...</span>
       </Button>
@@ -164,7 +175,7 @@ export function PushNotificationManager() {
 
   if (permissionState === "denied") {
     return (
-      <Button variant="outline" size="sm" disabled title="Notifications blocked">
+      <Button variant="outline" disabled title="Notifications blocked">
         <BellOff className="h-4 w-4" />
         <span className="hidden sm:inline ml-2">Blocked</span>
       </Button>
@@ -176,7 +187,6 @@ export function PushNotificationManager() {
       <div className="flex items-center gap-1 sm:gap-2">
         <Button
           variant="outline"
-          size="sm"
           onClick={handleTestNotification}
           title="Send test notification"
         >
@@ -184,7 +194,6 @@ export function PushNotificationManager() {
         </Button>
         <Button
           variant="outline"
-          size="sm"
           onClick={unsubscribeFromPush}
           title="Disable notifications"
         >
@@ -198,7 +207,6 @@ export function PushNotificationManager() {
   return (
     <Button
       variant="outline"
-      size="sm"
       onClick={subscribeToPush}
       title="Enable notifications"
     >
