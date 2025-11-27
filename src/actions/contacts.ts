@@ -25,15 +25,16 @@ export async function createContactAction(data: CreateContact) {
     const now = new Date().toISOString();
 
     // Use transaction to insert and get txid atomically
+    // The ::xid::text::int cast gives the raw 32-bit value matching Electric's logical replication
     const [insertResult, txidResult] = await sql.transaction([
       sql`INSERT INTO contacts (id, name, email, tel, title, company, user_id, created_at, updated_at)
           VALUES (${data.id}, ${data.name}, ${data.email ?? null}, ${data.tel ?? null}, ${data.title ?? null}, ${data.company ?? null}, ${user.id}, ${now}, ${now})
           RETURNING *`,
-      sql`SELECT pg_current_xact_id()::text as txid`,
+      sql`SELECT pg_current_xact_id()::xid::text::int as txid`,
     ]);
 
     const insertedContact = insertResult[0];
-    const txid = txidResult[0].txid;
+    const txid = txidResult[0].txid as number;
 
     // Send push notification to the user's other devices
     // This runs asynchronously and doesn't block the response
@@ -69,6 +70,7 @@ export async function updateContactAction(id: string, data: UpdateContact) {
     const now = new Date().toISOString();
 
     // Use transaction to update and get txid atomically
+    // The ::xid::text::int cast gives the raw 32-bit value matching Electric's logical replication
     const [updateResult, txidResult] = await sql.transaction([
       sql`UPDATE contacts
           SET name = ${data.name},
@@ -79,11 +81,11 @@ export async function updateContactAction(id: string, data: UpdateContact) {
               updated_at = ${now}
           WHERE id = ${id} AND user_id = ${user.id}
           RETURNING *`,
-      sql`SELECT pg_current_xact_id()::text as txid`,
+      sql`SELECT pg_current_xact_id()::xid::text::int as txid`,
     ]);
 
     const updatedContact = updateResult[0];
-    const txid = txidResult[0].txid;
+    const txid = txidResult[0].txid as number;
 
     if (!updatedContact) {
       return {
@@ -112,15 +114,16 @@ export async function deleteContactAction(id: string) {
     const user = await getUser();
 
     // Use transaction to delete and get txid atomically
+    // The ::xid::text::int cast gives the raw 32-bit value matching Electric's logical replication
     const [deleteResult, txidResult] = await sql.transaction([
       sql`DELETE FROM contacts
           WHERE id = ${id} AND user_id = ${user.id}
           RETURNING id`,
-      sql`SELECT pg_current_xact_id()::text as txid`,
+      sql`SELECT pg_current_xact_id()::xid::text::int as txid`,
     ]);
 
     const deletedContact = deleteResult[0];
-    const txid = txidResult[0].txid;
+    const txid = txidResult[0].txid as number;
 
     if (!deletedContact) {
       return {

@@ -34,7 +34,7 @@ export const contactCollection = createCollection(
 
     // Add server action handlers for mutations
     onInsert: async ({ transaction }) => {
-      const results = [];
+      const results: number[] = [];
 
       for (const mutation of transaction.mutations) {
         const contactData = mutation.modified;
@@ -45,14 +45,15 @@ export const contactCollection = createCollection(
           throw new Error(result.error || "Failed to create contact");
         }
 
-        results.push(result.txid);
+        // txid is guaranteed to exist when success is true
+        results.push(result.txid!);
       }
 
       return { txid: results };
     },
 
     onUpdate: async ({ transaction }) => {
-      const results = [];
+      const results: number[] = [];
       for (const mutation of transaction.mutations) {
         const contactId = String(mutation.key);
         const changes = mutation.changes;
@@ -65,14 +66,15 @@ export const contactCollection = createCollection(
           throw new Error(result.error || "Failed to update contact");
         }
 
-        results.push(result.txid);
+        // txid is guaranteed to exist when success is true
+        results.push(result.txid!);
       }
 
       return { txid: results };
     },
 
     onDelete: async ({ transaction }) => {
-      const results = [];
+      const results: number[] = [];
 
       for (const mutation of transaction.mutations) {
         const contactId = String(mutation.key);
@@ -83,7 +85,8 @@ export const contactCollection = createCollection(
           throw new Error(result.error || "Failed to delete contact");
         }
 
-        results.push(result.txid);
+        // txid is guaranteed to exist when success is true
+        results.push(result.txid!);
       }
 
       return { txid: results };
