@@ -41,9 +41,10 @@ export function useContactSound() {
         if (change.type === "insert") {
           const contactId = String(change.key);
 
-          // If this ID was just created locally (optimistic), track it and skip sound
+          // If this ID was created locally, skip sound
+          // Don't delete from set - ElectricSQL may fire multiple events for the same insert
+          // (optimistic + sync confirmation). Let the 30-second timeout handle cleanup.
           if (localMutationIdsRef.current.has(contactId)) {
-            localMutationIdsRef.current.delete(contactId);
             continue;
           }
 
