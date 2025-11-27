@@ -40,7 +40,7 @@ export async function createContactAction(data: CreateContact) {
     sendPushNotificationToUser(user.id, {
       title: "New Contact Added",
       body: `${insertedContact.name} was added to your contacts`,
-      icon: "/icons/icon-192x192.svg",
+      icon: "/icons/icon-192x192.png",
       url: "/",
       tag: `contact-${insertedContact.id}`,
     }).catch((err) => {

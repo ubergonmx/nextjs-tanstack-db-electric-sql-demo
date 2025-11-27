@@ -11,8 +11,9 @@ self.addEventListener("push", function (event) {
     const data = event.data.json();
     const options = {
       body: data.body || "You have a new notification",
-      icon: data.icon || "/icons/icon-192x192.svg",
-      badge: "/icons/icon-192x192.svg",
+      icon: data.icon || "/icons/icon-192x192.png",
+      // Badge must be monochrome (white on transparent) for Android
+      badge: "/icons/badge-96x96.svg",
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
