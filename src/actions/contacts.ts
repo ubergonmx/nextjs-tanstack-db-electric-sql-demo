@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { sql } from "@/db";
 import type { CreateContact, UpdateContact } from "@/schema";
 import { headers } from "next/headers";
-import { sendPushNotificationToUser } from "./push";
+import { sendPushNotificationToUser, getCurrentDeviceEndpoint } from "./push";
 
 async function getUser() {
   const session = await auth.api.getSession({
@@ -36,17 +36,26 @@ export async function createContactAction(data: CreateContact) {
     const insertedContact = insertResult[0];
     const txid = txidResult[0].txid as number;
 
-    // Send push notification to the user's other devices
-    // This runs asynchronously and doesn't block the response
-    sendPushNotificationToUser(user.id, {
-      title: "New Contact Added",
-      body: `${insertedContact.name} was added to your contacts`,
-      icon: "/icons/icon-192x192.png",
-      url: "/",
-      tag: `contact-${insertedContact.id}`,
-    }).catch((err) => {
+    // Send push notification to the user's other devices (excluding current device)
+    // Get current device's endpoint to exclude it from notifications
+    const currentEndpoint = await getCurrentDeviceEndpoint();
+
+    // Await the notification to ensure it sends before the action completes
+    try {
+      await sendPushNotificationToUser(
+        user.id,
+        {
+          title: "New Contact Added",
+          body: `${insertedContact.name} was added to your contacts`,
+          icon: "/icons/icon-192x192.png",
+          url: "/",
+          tag: `contact-${insertedContact.id}`,
+        },
+        currentEndpoint || undefined
+      );
+    } catch (err) {
       console.error("Failed to send push notification:", err);
-    });
+    }
 
     return {
       success: true,

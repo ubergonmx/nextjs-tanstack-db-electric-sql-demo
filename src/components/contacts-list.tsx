@@ -40,6 +40,7 @@ import { CreateContactForm } from "./create-contact-form";
 import { toast } from "sonner";
 import { signOut } from "@/lib/auth-client";
 import { useContactSound } from "@/hooks/use-contact-sound";
+import { useClearBadge } from "@/hooks/use-clear-badge";
 import { PushNotificationManager } from "./push-notification-manager";
 import {
   AlertDialog,
@@ -61,6 +62,9 @@ export function ContactsList() {
 
   // Play sound when new contacts are detected
   useContactSound();
+
+  // Clear badge and notifications when app becomes visible
+  useClearBadge();
 
   const handleSignOut = async () => {
     await signOut();

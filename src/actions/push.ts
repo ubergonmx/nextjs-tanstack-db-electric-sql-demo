@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { pushSubscriptionsTable } from "@/schema";
 import { eq, and } from "drizzle-orm";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 // Configure web-push with VAPID details
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
@@ -60,14 +60,22 @@ export async function subscribeUserToPush(subscription: PushSubscriptionData) {
           .set({ userId: user.id, keys: subscription.keys })
           .where(eq(pushSubscriptionsTable.endpoint, subscription.endpoint));
       }
-      return { success: true, message: "Subscription updated" };
+    } else {
+      // Insert new subscription
+      await db.insert(pushSubscriptionsTable).values({
+        userId: user.id,
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+      });
     }
 
-    // Insert new subscription
-    await db.insert(pushSubscriptionsTable).values({
-      userId: user.id,
-      endpoint: subscription.endpoint,
-      keys: subscription.keys,
+    // Store the endpoint in a cookie so we can exclude this device from notifications
+    const cookieStore = await cookies();
+    cookieStore.set("push-endpoint", subscription.endpoint, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
     });
 
     return { success: true, message: "Subscribed to push notifications" };
@@ -78,6 +86,16 @@ export async function subscribeUserToPush(subscription: PushSubscriptionData) {
       error:
         error instanceof Error ? error.message : "Failed to subscribe to push",
     };
+  }
+}
+
+// Helper to get current device's push endpoint from cookie
+export async function getCurrentDeviceEndpoint(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get("push-endpoint")?.value || null;
+  } catch {
+    return null;
   }
 }
 
@@ -93,6 +111,10 @@ export async function unsubscribeUserFromPush(endpoint: string) {
           eq(pushSubscriptionsTable.userId, user.id)
         )
       );
+
+    // Clear the push endpoint cookie
+    const cookieStore = await cookies();
+    cookieStore.delete("push-endpoint");
 
     return { success: true, message: "Unsubscribed from push notifications" };
   } catch (error) {

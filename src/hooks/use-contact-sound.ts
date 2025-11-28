@@ -12,13 +12,35 @@ export function useContactSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isInitialLoadRef = useRef(true);
   const localMutationIdsRef = useRef<Set<string>>(new Set());
+  const audioUnlockedRef = useRef(false);
 
   // Initialize audio element on mount
   useEffect(() => {
     audioRef.current = new Audio("/new-message.mp3");
     audioRef.current.volume = 0.5; // Set volume to 50%
 
+    // iOS requires user interaction to unlock audio playback
+    // This handler unlocks the audio on first user interaction
+    const unlockAudio = () => {
+      if (audioUnlockedRef.current || !audioRef.current) return;
+
+      // Play and immediately pause to unlock audio on iOS
+      audioRef.current.play().then(() => {
+        audioRef.current?.pause();
+        audioRef.current!.currentTime = 0;
+        audioUnlockedRef.current = true;
+      }).catch(() => {
+        // Ignore errors - will retry on next interaction
+      });
+    };
+
+    // Listen for user interactions to unlock audio
+    document.addEventListener("touchstart", unlockAudio, { once: true });
+    document.addEventListener("click", unlockAudio, { once: true });
+
     return () => {
+      document.removeEventListener("touchstart", unlockAudio);
+      document.removeEventListener("click", unlockAudio);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
