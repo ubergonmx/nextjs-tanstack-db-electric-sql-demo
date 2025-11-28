@@ -10,7 +10,8 @@ import { contactCollection } from "@/collections";
  */
 export function useContactSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isInitialLoadRef = useRef(true);
+  const initialLoadCompleteRef = useRef(false);
+  const seenContactIdsRef = useRef<Set<string>>(new Set());
   const localMutationIdsRef = useRef<Set<string>>(new Set());
   const audioUnlockedRef = useRef(false);
 
@@ -50,22 +51,31 @@ export function useContactSound() {
 
   // Subscribe to collection changes to detect synced updates
   useEffect(() => {
+    // Mark initial load as complete after a delay to allow all initial data to sync
+    const initialLoadTimer = setTimeout(() => {
+      initialLoadCompleteRef.current = true;
+    }, 2000); // 2 second grace period for initial sync
+
     // Subscribe to changes in the collection
     const unsubscribe = contactCollection.subscribeChanges((changes) => {
-      // Skip initial state changes (when component first mounts)
-      if (isInitialLoadRef.current) {
-        isInitialLoadRef.current = false;
-        return;
-      }
-
-      // Check for insert changes that aren't from local optimistic mutations
+      // Check for insert changes
       for (const change of changes) {
         if (change.type === "insert") {
           const contactId = String(change.key);
 
+          // Track all contact IDs we've seen
+          if (seenContactIdsRef.current.has(contactId)) {
+            // Already seen this contact, skip
+            continue;
+          }
+          seenContactIdsRef.current.add(contactId);
+
+          // Skip if initial load isn't complete yet (prevents sound on page load/refresh)
+          if (!initialLoadCompleteRef.current) {
+            continue;
+          }
+
           // If this ID was created locally, skip sound
-          // Don't delete from set - ElectricSQL may fire multiple events for the same insert
-          // (optimistic + sync confirmation). Let the 30-second timeout handle cleanup.
           if (localMutationIdsRef.current.has(contactId)) {
             continue;
           }
@@ -78,7 +88,10 @@ export function useContactSound() {
       }
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(initialLoadTimer);
+      unsubscribe();
+    };
   }, []);
 
   // Track local mutations by intercepting collection insert calls

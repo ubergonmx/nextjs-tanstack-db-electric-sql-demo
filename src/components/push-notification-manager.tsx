@@ -46,8 +46,9 @@ export function PushNotificationManager() {
   async function checkExistingSubscription() {
     try {
       // Add timeout to prevent hanging if service worker isn't ready
-      const timeoutPromise = new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error("Service worker timeout")), 3000)
+      // iOS can be slower, so use 10 seconds instead of 3
+      const timeoutPromise = new Promise<ServiceWorkerRegistration>((resolve) =>
+        setTimeout(() => resolve(null as unknown as ServiceWorkerRegistration), 10000)
       );
 
       const registration = await Promise.race([
@@ -58,6 +59,8 @@ export function PushNotificationManager() {
       if (registration) {
         const existingSub = await registration.pushManager.getSubscription();
         setSubscription(existingSub);
+      } else {
+        console.log("[Push] Service worker ready timed out after 10s");
       }
     } catch (error) {
       console.error("Error checking subscription:", error);

@@ -152,14 +152,24 @@ export async function sendPushNotificationToUser(
 
     const subscriptions = await query;
 
+    console.log(`[Push] User ${userId} has ${subscriptions.length} subscription(s)`);
+    if (excludeEndpoint) {
+      console.log(`[Push] Excluding endpoint: ${excludeEndpoint.substring(0, 50)}...`);
+    }
+
     if (subscriptions.length === 0) {
       return { success: true, message: "No subscriptions found for user" };
     }
 
+    // Filter subscriptions (excluding current device if endpoint provided)
+    const targetSubscriptions = subscriptions.filter(
+      (sub) => !excludeEndpoint || sub.endpoint !== excludeEndpoint
+    );
+
+    console.log(`[Push] Sending to ${targetSubscriptions.length} of ${subscriptions.length} subscription(s)`);
+
     const results = await Promise.allSettled(
-      subscriptions
-        .filter((sub) => !excludeEndpoint || sub.endpoint !== excludeEndpoint)
-        .map(async (sub) => {
+      targetSubscriptions.map(async (sub) => {
           const pushSubscription = {
             endpoint: sub.endpoint,
             keys: sub.keys as PushSubscriptionKeys,
@@ -170,10 +180,13 @@ export async function sendPushNotificationToUser(
               pushSubscription,
               JSON.stringify(payload)
             );
+            console.log(`[Push] Successfully sent to ${sub.endpoint.substring(0, 50)}...`);
             return { endpoint: sub.endpoint, success: true };
           } catch (error: any) {
+            console.error(`[Push] Failed to send to ${sub.endpoint.substring(0, 50)}...`, error.statusCode, error.message);
             // If subscription is expired or invalid, delete it
             if (error.statusCode === 404 || error.statusCode === 410) {
+              console.log(`[Push] Removing expired/invalid subscription: ${sub.endpoint.substring(0, 50)}...`);
               await db
                 .delete(pushSubscriptionsTable)
                 .where(eq(pushSubscriptionsTable.endpoint, sub.endpoint));
